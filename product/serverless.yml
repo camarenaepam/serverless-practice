@@ -67,7 +67,7 @@ functions:
     handler: handler.getProductList
     events:
       - http:
-          path: product-list
+          path: products
           method: get
   getProductById:
     handler: handler.getProductById

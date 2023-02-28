@@ -63,6 +63,12 @@ module.exports.getProductList = async (event) => {
 
 module.exports.getProductById = async (event) => {
   const result = results.find(item => item.id === parseInt(event.pathParameters.productId))
+  if (!result) {
+    return {
+      statusCode: 404,
+      body: JSON.stringify({ message: "product doesn't exist" })
+    }
+  }
   return {
     statusCode: 200,
     body: JSON.stringify({ result })
