@@ -69,6 +69,12 @@ functions:
       - http:
           path: products
           method: get
+  createProduct:
+    handler: handler.createProduct
+    events:
+      - http:
+          path: products
+          method: post
   getProductById:
     handler: handler.getProductById
     events:
@@ -79,6 +85,34 @@ functions:
             parameters:
               paths:
                 productId: true
+resources:
+  Resources:
+    tableNameProducts:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: tableNameProducts
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: N
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+    tableNameStock:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: tableNameStock
+        AttributeDefinitions:
+          - AttributeName: product_id
+            AttributeType: N
+        KeySchema:
+          - AttributeName: product_id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
 
 #    The following are a few example events you can configure
 #    NOTE: Please make sure to change your handler code to work with those events
