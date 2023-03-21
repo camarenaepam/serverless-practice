@@ -1,0 +1,41 @@
+service: importservice
+
+frameworkVersion: 3
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  region: us-west-1
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action: s3:ListBucket
+          Resource: arn:aws:s3:::uploaded-camarena
+        - Effect: Allow
+          Action:
+            - s3:GetObject
+            - s3:PutObject
+          Resource:
+            - arn:aws:s3:::uploaded-camarena/*
+
+functions:
+  importFileParser:
+    handler: handler.importFileParser 
+    events: 
+      - s3:
+          bucket: uploaded-camarena
+          event: s3:ObjectCreated:*
+          rules: 
+            - prefix: uploaded/
+          existing: true
+  importProductsFile:
+    handler: handler.getImportedProducts
+    events:
+      - http:
+          path: uploaded/{fileName}
+          method: get
+          request:
+            parameters:
+              paths:
+                fileName: true
