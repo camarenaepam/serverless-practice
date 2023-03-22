@@ -1,5 +1,5 @@
 'use strict';
-const { S3 } = require("aws-sdk");
+const { S3, SQS } = require("aws-sdk");
 const csv = require('csv-parser');
 const fs = require('fs');
 const { Readable } = require('stream');
@@ -66,6 +66,8 @@ const getObject = async (bucket, objectKey) => {
 
    const s3Object = await s3.getObject(params).promise();
 
+   console.log('s3Object:', s3Object);
+
    const body = s3Object.Body
    const chunks = []
 
@@ -92,19 +94,23 @@ const parseObject = async (data) => {
   }
 }
 
-
 module.exports.importFileParser = async (event) => {
-  const record = event.Records[0];
+  try {
+    const sqs = new SQS({ region: 'us-west-1' });
 
-  const s3Object = await getObject(record.s3.bucket.name, record.s3.object.key);
+    const QueueUrl = 'https://sqs.us-west-1.amazonaws.com/329821757763/product-dev-catalogItemsQueue';
+    const record = event.Records[0];
+    console.log('record', record);
 
-  const data = await parseObject(s3Object);
+    const s3Object = await getObject(record.s3.bucket.name, record.s3.object.key);
+    const data = await parseObject(s3Object);
+    console.log('data', data);
 
-  return {
-    statusCode: 200,
-    body: JSON.stringify({
-        messgae: 'hello world'
-    })
-  };
-
+    for (const product of data) {
+      await sqs.sendMessage({ QueueUrl, MessageBody: JSON.stringify(product) }).promise();
+      console.log('sendMessageResponse', sendMessageResponse);
+    }
+  } catch (err) {
+    console.log('err', err);
+  }
 };
