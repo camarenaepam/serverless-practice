@@ -8,7 +8,18 @@ exports.catalogBatchProcess = async (event) => {
         const products = [];
 
         for (const message of event.Records) {
-            const product = JSON.parse(message.body);
+            let product = JSON.parse(message.body);
+
+            product = {
+                ...product,
+                id: (typeof(product.id) === 'string') ? Number(product.id) : product.id,
+                price: (typeof(product.price) === 'string') ? Number(product.price) : product.price
+            }
+
+            console.log('product', product);
+            console.log('product.id', product.id);
+            console.log('product.id', product.id);
+            console.log('typeof(product.id)', typeof(product.id));
 
             const payload = {
                 PutRequest: {
@@ -19,7 +30,8 @@ exports.catalogBatchProcess = async (event) => {
             products.push(payload);
         }
 
-        console.log('products', JSON.stringify(products));
+
+        products.forEach(item => console.log('Item', item.PutRequest.Item))
        
         const dbParams = {
             RequestItems: {
