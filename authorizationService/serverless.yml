@@ -1,0 +1,16 @@
+service: authorizationService
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  region: us-west-1
+  environment: 
+    camarenaepam: "${env:camarenaepam}"
+
+functions:
+  basicAuthorizer:
+    handler: handler.basicAuthorizer
+
+useDotenv: true
