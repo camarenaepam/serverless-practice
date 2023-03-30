@@ -1,6 +1,6 @@
 service: importservice
 
-frameworkVersion: 3
+frameworkVersion: '3'
 
 provider:
   name: aws
@@ -39,3 +39,8 @@ functions:
             parameters:
               paths:
                 fileName: true
+          authorizer:
+            name: "basicAuthorizer"
+            arn: "arn:aws:lambda:us-west-1:329821757763:function:authorizationService-dev-basicAuthorizer"
+            type: "token"
+            identitySource: "method.request.header.Authorization"

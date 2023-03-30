@@ -10,6 +10,44 @@ const headers =  {
   "Access-Control-Allow-Methods": "OPTIONS,POST,GET"
 };
 
+const getObject = async (s3, bucketName, objectKey) => {
+  return s3.getObject({
+      Bucket: bucketName,
+      Key: objectKey,
+  });
+};
+
+const createReadStream = async (s3Object, sqs) => {
+  await s3Object.createReadStream().pipe(csv()).on(
+    'data', async data => {
+      const QueueUrl = 'https://sqs.us-west-1.amazonaws.com/329821757763/product-dev-catalogItemsQueue';
+      console.log('parsedData:', data)
+      const sendMessageResponse = await sqs.sendMessage({ QueueUrl, MessageBody: JSON.stringify(data) }).promise();
+      console.log('sendMessageResponse', sendMessageResponse);
+    }
+    );
+  return s3Object;
+};
+
+const copyObject = async (s3, bucketName, objectKey, copiedObjectKey) => {
+  return s3
+    .copyObject({
+      Bucket: bucketName,
+      CopySource: `${bucketName}/${objectKey}`,
+      Key: copiedObjectKey,
+    })
+    .promise();
+};
+
+const deleteObject = async (s3, bucketName, objectKey) => {
+  return s3
+    .deleteObject({
+      Bucket: bucketName,
+      Key: objectKey,
+    })
+    .promise();
+};
+
 module.exports.getImportedProducts = async (event) => {
   try {
     const fileName = event.pathParameters.fileName;
@@ -54,61 +92,26 @@ module.exports.getImportedProducts = async (event) => {
   }
 };
 
-const getObject = async (bucket, objectKey) => {
-  try {
-    const s3 = new S3({ region: 'us-west-1' });
-
-    const params = {
-      Bucket: bucket,
-      Key: objectKey 
-    }
-
-
-   const s3Object = await s3.getObject(params).promise();
-
-   console.log('s3Object:', s3Object);
-
-   const body = s3Object.Body
-   const chunks = []
-
- 
-   for await (const chunk of body) {
-     chunks.push(chunk)
-   }
-   
-   const responseBuffer = Buffer.from(chunks)
-   
-   return responseBuffer;
-  } catch (e) {
-    throw new Error(`getObject:Could not retrieve file from S3: ${e.message}`)
-  }
-}
-
-const parseObject = async (data) => {
-  try {
-    const results = [];
-    await fs.createReadStream(data).pipe(csv({separator: ','})).on('parse:data', (data) => results.push(data));
-    return results;
-  } catch (e) {
-    throw new Error(`Could not stream csv: ${e}`) 
-  }
-}
-
 module.exports.importFileParser = async (event) => {
   try {
-    const sqs = new SQS({ region: 'us-west-1' });
-
-    const QueueUrl = 'https://sqs.us-west-1.amazonaws.com/329821757763/product-dev-catalogItemsQueue';
-    const record = event.Records[0];
-    console.log('record', record);
-
-    const s3Object = await getObject(record.s3.bucket.name, record.s3.object.key);
-    const data = await parseObject(s3Object);
-    console.log('data', data);
-
-    for (const product of data) {
-      await sqs.sendMessage({ QueueUrl, MessageBody: JSON.stringify(product) }).promise();
-      console.log('sendMessageResponse', sendMessageResponse);
+    const region = 'us-west-1';
+    const sqs = new SQS({ region });
+    const s3 = new S3({ region });
+    
+    for (const record of event.Records) {
+      const bucketName = record.s3.bucket.name;
+      const objectKey = record.s3.object.key;
+  
+      const s3Object = await getObject(s3, bucketName, objectKey);
+      
+      await createReadStream(s3Object, sqs);
+      await copyObject(
+        s3,
+        bucketName,
+        objectKey,
+        objectKey.replace("uploaded", "parsed")
+      );
+      await deleteObject(s3, bucketName, objectKey);
     }
   } catch (err) {
     console.log('err', err);
