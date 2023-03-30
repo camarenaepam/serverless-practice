@@ -9,17 +9,6 @@ const headers =  {
   "Access-Control-Allow-Methods": "OPTIONS,POST,GET"
 };
 
-module.exports.hello = async (event) => {
-  return {
-    statusCode: 200,
-    body: JSON.stringify({
-        productName: 'book',
-        input: 123,
-    })
-  };
-
-};
-
 module.exports.getProductList = async (event) => {
   try {
     const db = new DynamoDB.DocumentClient();
@@ -44,8 +33,8 @@ module.exports.getProductList = async (event) => {
 };
 
 module.exports.createProduct = async (event) => {
-  const db = new DynamoDB.DocumentClient();
   try {
+    const db = new DynamoDB.DocumentClient(); 
     const TableName = 'tableNameProducts';
     
     const params = {
